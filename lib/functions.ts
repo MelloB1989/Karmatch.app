@@ -10,7 +10,7 @@ export const uploadFile = async (file: any) => {
   formData.append("apiKey", config.kf_public_api_key);
   try {
     const response = await axios.post(
-      "https://files-public.coffeecodes.in/upload",
+      "https://karma_files.kartikdd90.workers.dev/upload",
       formData,
     );
     const url = response.data.url;

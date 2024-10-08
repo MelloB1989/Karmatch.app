@@ -151,8 +151,15 @@ export default function ProfileSetupScreen({
               `${config.api}/${config.api_v}/auth/register`,
               {
                 ...user,
+                email: JSON.parse(
+                  Buffer.from(
+                    (session ? session : "").split(".")[1],
+                    "base64",
+                  ).toString("utf-8"),
+                ).email,
                 bio,
                 full_name: name,
+                country: "India",
                 username:
                   name.split(" ")[0] +
                   Math.floor(100000 + Math.random() * 900000).toString(),
