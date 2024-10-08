@@ -88,8 +88,8 @@ export default function ProfileSetupScreen({
           style={styles.input}
           placeholder="Your Full Name"
           placeholderTextColor="#888"
-          value={bio}
-          onChangeText={setBio}
+          value={name}
+          onChangeText={setName}
           multiline={true}
           maxLength={250}
         />
@@ -98,8 +98,8 @@ export default function ProfileSetupScreen({
           style={styles.input}
           placeholder="Write a short bio"
           placeholderTextColor="#888"
-          value={name}
-          onChangeText={setName}
+          value={bio}
+          onChangeText={setBio}
           multiline={true}
           maxLength={250}
         />
@@ -151,12 +151,8 @@ export default function ProfileSetupScreen({
               `${config.api}/${config.api_v}/auth/register`,
               {
                 ...user,
-                email: JSON.parse(
-                  Buffer.from(
-                    (session ? session : "").split(".")[1],
-                    "base64",
-                  ).toString("utf-8"),
-                ).email,
+                email: JSON.parse(atob((session ? session : "").split(".")[1]))
+                  .email,
                 bio,
                 full_name: name,
                 country: "India",
@@ -174,6 +170,7 @@ export default function ProfileSetupScreen({
                 },
               },
             );
+
             console.log(r.data);
             router.replace("/");
           }}

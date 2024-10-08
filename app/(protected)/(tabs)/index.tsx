@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,11 @@ import {
   Animated,
   Platform,
 } from "react-native";
+import axios from "axios";
+import { config } from "@/config";
+import { useSession } from "@/app/ctx";
+import Toast from "react-native-toast-message";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Message type definition
 interface Message {
@@ -25,7 +30,21 @@ const ChatScreen: React.FC = () => {
   const animation = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<FlatList<Message>>(null); // Create a ref for the FlatList
 
-  const sendMessage = () => {
+  const { session } = useSession();
+
+  useEffect(() => {
+    AsyncStorage.getItem("messages").then((messages) => {
+      if (messages || messages === "[]") {
+        setMessages(JSON.parse(messages));
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    AsyncStorage.setItem("messages", JSON.stringify(messages));
+  }, [messages]);
+
+  const sendMessage = async () => {
     if (inputText.trim().length > 0) {
       // Add user message
       const userMessage = { text: inputText, isUser: true };
@@ -38,18 +57,52 @@ const ChatScreen: React.FC = () => {
       // Show typing indicator
       setIsTyping(true);
 
-      // Simulate AI response after a delay
-      setTimeout(() => {
-        const aiResponse = { text: "This is an AI response", isUser: false };
-        setMessages((prevMessages) => [...prevMessages, aiResponse]);
-
-        // Hide typing indicator
+      try {
+        const r = await axios.post(
+          `${config.api}/${config.api_v}/ai/conversation`,
+          {
+            message: inputText,
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session}`,
+            },
+          },
+        );
+        if (r.data.success) {
+          const aiResponse = { text: r.data.ai_message, isUser: false };
+          setMessages((prevMessages) => [...prevMessages, aiResponse]);
+        } else {
+          Toast.show({
+            type: "error",
+            text1: "Error",
+            text2: r.data.message,
+          });
+        }
         setIsTyping(false);
+      } catch (e) {
+        console.log(e);
+        Toast.show({
+          type: "error",
+          text1: "Error",
+          text2: "Failed to send message",
+        });
+        setIsTyping(false);
+      }
 
-        // Auto-scroll to the bottom after adding AI response
-        flatListRef.current?.scrollToEnd({ animated: true });
-        animateBubble(); // Animate the bubble after adding the message
-      }, 1000);
+      // // Simulate AI response after a delay
+      // setTimeout(() => {
+      //   const aiResponse = { text: "This is an AI response", isUser: false };
+      //   setMessages((prevMessages) => [...prevMessages, aiResponse]);
+
+      //   // Hide typing indicator
+      //   setIsTyping(false);
+
+      //   // Auto-scroll to the bottom after adding AI response
+      //   flatListRef.current?.scrollToEnd({ animated: true });
+      //   animateBubble(); // Animate the bubble after adding the message
+      // }, 1000);
 
       // Reset animation for new message
       animateBubble();
@@ -88,9 +141,7 @@ const ChatScreen: React.FC = () => {
     >
       <View style={styles.avatarContainer}>
         <Image
-          source={{
-            uri: "https://cdn-icons-png.flaticon.com/512/4825/4825038.png", // AI avatar image link
-          }}
+          source={require("../../../assets/images/Lisa.jpg")}
           style={styles.avatar}
         />
       </View>
@@ -123,6 +174,7 @@ const ChatScreen: React.FC = () => {
           <Text style={styles.sendButtonText}>Send</Text>
         </TouchableOpacity>
       </View>
+      <Toast />
     </KeyboardAvoidingView>
   );
 };
@@ -140,8 +192,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   avatar: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
     borderRadius: 40,
     borderWidth: 2,
     borderColor: "#FF1493",
