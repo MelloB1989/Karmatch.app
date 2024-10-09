@@ -36,6 +36,10 @@ const ChatScreen: React.FC = () => {
     AsyncStorage.getItem("messages").then((messages) => {
       if (messages || messages === "[]") {
         setMessages(JSON.parse(messages));
+      } else {
+        setMessages([
+          { text: "Hello! I am your AI match-maker, Leona", isUser: false },
+        ]);
       }
     });
   }, []);
@@ -47,6 +51,7 @@ const ChatScreen: React.FC = () => {
   const sendMessage = async () => {
     if (inputText.trim().length > 0) {
       // Add user message
+      const prev_ai_message = messages[messages.length - 1];
       const userMessage = { text: inputText, isUser: true };
       setMessages((prevMessages) => [...prevMessages, userMessage]);
       setInputText("");
@@ -62,6 +67,8 @@ const ChatScreen: React.FC = () => {
           `${config.api}/${config.api_v}/ai/conversation`,
           {
             message: inputText,
+            slang: "delhi",
+            ai: prev_ai_message.text,
           },
           {
             headers: {
@@ -71,7 +78,7 @@ const ChatScreen: React.FC = () => {
           },
         );
         if (r.data.success) {
-          const aiResponse = { text: r.data.ai_message, isUser: false };
+          const aiResponse = { text: r.data.message, isUser: false };
           setMessages((prevMessages) => [...prevMessages, aiResponse]);
         } else {
           Toast.show({
